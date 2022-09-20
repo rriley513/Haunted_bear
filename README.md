@@ -1,6 +1,6 @@
 # "Haunted Bear" THREE.js scene
 
-![Bear final scene](s8.png)
+![Bear final scene](visuals/s8.png)
 
 Excerpts from Final project for Wellesley College’s graphics class CS 307, Spring 2019
 
