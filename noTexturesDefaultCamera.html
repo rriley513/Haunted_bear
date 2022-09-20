@@ -1,0 +1,481 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Creative Scene</title>
+    <style>
+
+      canvas {
+          display: block;
+          margin: 10px auto;
+          width: 80%;
+          height: 500px;
+      }
+      </style>
+      <script src="https://cs.wellesley.edu/~cs307/threejs/libs/three.min.js"></script>
+      <script src="https://cs.wellesley.edu/~cs307/threejs/libs/OrbitControls.js"></script>
+      <script src="https://cs.wellesley.edu/~cs307/threejs/libs/tw.js"></script>
+      <script src="bookcaseNT.js"></script>
+      <script src="lamp.js"></script>
+      <script src="book.js"></script>
+      <script src="bear.js"></script>
+      <script src="bedNT.js"></script>
+      <script src="window.js"></script>
+      <script src="bearPieces.js"></script>
+  </head>
+<body>
+
+<script>
+
+var scene = new THREE.Scene();
+
+// ====================================================================
+var boxDim = 100; //needs to be outside to make box
+
+//lights need to be outside of function to turn visible on/off
+var lightColor = 0x808080;
+var lampParams = {base: 12, baseHeight: 2, height: 75, poleWidth: 1,
+  shadeRad: 10, segs: 20};
+var ambientLight = new THREE.AmbientLight (lightColor, 1.5);
+var spotlightUp = new THREE.SpotLight(0xffffff, .6, 100,
+  Math.atan(lampParams.shadeRad/(lampParams.height/5)));
+var spotlightDown = new THREE.SpotLight(0xffffff, .5, 70,
+  Math.atan(lampParams.shadeRad/(lampParams.height/5)));
+//var lampLights = new Array();
+//for (var i=0; i<12; i++) lampLights[i] = new THREE.SpotLight(0xffffff, 0.25, 40,
+  //Math.atan((lampParams.height/10)/lampParams.shadeRad));
+var lamp = makeLamp(lampParams);
+
+var bookcaseParams = {height: 60, width: 30, depth: 15, boardWidth: 3};
+
+var bearParams = {body: 2, color: 0xdb9465, pink: 0xf58ca9,
+  scarf: 0x418bf2, bell: 0x9bd4cd}
+var bear = makeBear(bearParams);
+var bearSpotlight = new THREE.SpotLight(0xffffff, 1.5, 25,
+    Math.atan(bearParams.body*2.5/20.0)); //heaight of 20 (arbitrary)
+var bearTarget = new THREE.Object3D();
+
+
+function makeScene(){
+  //make room------------------------------------------------------------
+  //very light grey, light blue, and white (covered w texture)
+  var roomColors = {walls: 0xffffff, ceiling: 0xffffff, floor: 0xffffff}
+  var roomGeom = new THREE.BoxGeometry(boxDim*2, boxDim, boxDim);
+
+
+  var materialArray = []; //right, left, top, bottom, front, back
+  var faceColors = [roomColors.walls, roomColors.walls, roomColors.ceiling,
+  roomColors.floor, roomColors.walls, roomColors.walls];
+  for(var i = 0; i < 6; i++) {
+    if (i==3) //floor
+      materialArray.push(new THREE.MeshPhongMaterial({ //dull shine
+        color: faceColors[i], side: THREE.BackSide, shininess: 2}));
+
+    else if (i==2) //ceiling
+      materialArray.push(new THREE.MeshPhongMaterial({
+        color: faceColors[i], side: THREE.BackSide, shininess: 2}));
+
+    else //walls
+    materialArray.push(new THREE.MeshPhongMaterial({
+      color: faceColors[i], side: THREE.BackSide, shininess: 2}));
+      }
+
+      // create mesh face material and a room mesh, and add the mesh to the scene
+
+      var roomMaterial = new THREE.MeshFaceMaterial(materialArray);
+      var roomMesh = new THREE.Mesh(roomGeom, roomMaterial);
+      scene.add(roomMesh);
+
+      //standing lamp----------------------------------------------------------
+
+      //var lampParams = {base: 12, baseHeight: 2, height: 75, poleWidth: 1,
+        //shadeRad: 10, segs: 20};
+
+      //var lamp = makeLamp(lampParams);
+
+      //PIVOT IS BASE OF THE LAMP
+      var lampCoords = {x: boxDim/3.5, y: -boxDim/2,
+        z: -boxDim/2+lampParams.base*1.5};
+
+      lamp.position.set(lampCoords.x, lampCoords.y, lampCoords.z);
+      scene.add(lamp);
+
+      //light-----------------------------------------------------------------------
+      //var lightColor = 0x808080;
+
+      //var ambientLight = new THREE.AmbientLight (lightColor, 1.5);
+      scene.add(ambientLight);
+
+      var lightCenter = lampCoords.y+lampParams.height*4/5;
+
+      //"inner glow" of lampshade-----------------------------------
+      var target = new THREE.Object3D();
+      target.position.set(lampCoords.x, lightCenter, lampCoords.z);
+      scene.add(target);
+
+      //for (var i=0; i<lampLights.length; i++){
+        //distance is arbitrary # preventing lights on walls
+        //gives the effect of the light glowing from inside
+        //var lampLight = new THREE.SpotLight(0xffffff, 0.25, 40,
+          //Math.atan((lampParams.height/10)/lampParams.shadeRad));
+/*
+        lampLights[i].position.set(
+          lampCoords.x+(lampParams.shadeRad*2*Math.cos(Math.PI/6*i)),
+         lightCenter,
+         lampCoords.z+(lampParams.shadeRad*2*Math.sin(Math.PI/6*i)));
+        lampLights[i].target = target;
+        scene.add(lampLights[i]);*/
+
+        //important for debugging
+        /*
+        var ball = new THREE.Mesh(new THREE.SphereGeometry(1),
+          new THREE.MeshPhongMaterial({color: 0xffc973}));
+        ball.position.set(
+          lampCoords.x+(lampParams.shadeRad*2*Math.cos(Math.PI/6*i)),
+         lightCenter,
+         lampCoords.z+(lampParams.shadeRad*2*Math.sin(Math.PI/6*i)));
+        scene.add(ball);*/
+      //}
+      //----------------------------------------------------------
+
+
+      //spotlight
+
+      //making spotlight up
+      //var spotlightUp = new THREE.SpotLight(0xffffff, .6, 100,
+        //Math.atan(lampParams.shadeRad/(lampParams.height/5)));
+      spotlightUp.position.set(lampCoords.x, lightCenter,
+        lampCoords.z); //inside lampshade
+      var targetUp = new THREE.Object3D();
+      //coordinates pointing at ceiling ABOVE sconce
+      targetUp.position.set(lampCoords.x, boxDim/2, lampCoords.z);
+      spotlightUp.target = targetUp;
+      scene.add(spotlightUp); scene.add(spotlightUp.target);
+
+      //spotlight down
+      //var spotlightDown = new THREE.SpotLight(0xffffff, .5, 70,
+        //Math.atan(lampParams.shadeRad/(lampParams.height/5)));
+      spotlightDown.position.set(lampCoords.x, lightCenter,
+        lampCoords.z); //inside lampshade
+      var targetDown = new THREE.Object3D();
+      //coordinates pointing at ceiling ABOVE sconce
+      targetDown.position.set(lampCoords.x, -boxDim/2, lampCoords.z);
+      spotlightDown.target = targetDown;
+      scene.add(spotlightDown); scene.add(spotlightDown.target);
+
+      //bookcase---------------------------------------------------------------
+
+      var bookcase = makeBookcase(bookcaseParams);
+      bookcase.position.set(
+        (bookcaseParams.width+bookcaseParams.boardWidth)/2 + -boxDim/4,
+        (bookcaseParams.height-boxDim)/2,
+        bookcaseParams.boardWidth-boxDim/2);
+      scene.add(bookcase);
+
+      //Books-----------------------------------------------------------------
+
+      //top shelf
+      var bookRed = makeBook({thickness: 1.5, height: 9, width: 8,
+        color: 0xeb1350, accent: 0x000000});
+      bookRed.rotation.y=Math.PI/2;
+      //computation explicit to show "one off"
+      bookRed.position.set(-boxDim/4+bookcaseParams.boardWidth+3-1,
+        bookcaseParams.height-9-boxDim/2, -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookRed);
+
+      var bookBlue = makeBook({thickness: 1.5, height: 12, width: 9,
+        color: 0x1988bf, accent: 0xffb300});
+      bookBlue.rotation.set(-Math.PI/2, 0, Math.PI/2);
+      bookBlue.position.set(-boxDim/4+bookcaseParams.width
+        -bookcaseParams.boardWidth-2, -boxDim/2+bookcaseParams.height-12.5,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookBlue);
+
+      var bookPink = makeBook({thickness: 1.5, height: 9, width: 8,
+        color: 0xf7597e, accent: 0xb0aeaf});
+      bookPink.rotation.set(-Math.PI/2, 0, Math.PI/2);
+      bookPink.position.set(-boxDim/4+bookcaseParams.width
+        -bookcaseParams.boardWidth-2, -boxDim/2+bookcaseParams.height-11,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookPink);
+
+      var bookGrey = makeBook({thickness: 1.5, height: 10, width: 8,
+        color: 0xb3b3b3, accent: 0xffb300});
+      bookGrey.rotation.set(-Math.PI/2, 0, Math.PI/2);
+      bookGrey.position.set(-boxDim/4+bookcaseParams.width
+        -bookcaseParams.boardWidth-2, -boxDim/2+bookcaseParams.height-9.5,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookGrey);
+
+      //second shelf
+      var bookPink2 = makeBook({thickness: 1.5, height: 9, width: 8,
+        color: 0xff96c4, accent: 0xffb300});
+      bookPink2.rotation.y = Math.PI/2;
+      bookPink2.position.set(-boxDim/4+bookcaseParams.boardWidth+2,
+        bookcaseParams.height-24-boxDim/2,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookPink2);
+
+      var bookGreen = makeBook({thickness: 3, height: 7, width: 10,
+        color: 0x1b451a, accent: 0xffb300});
+      bookGreen.rotation.y = Math.PI/2;
+      bookGreen.position.set(-boxDim/4+bookcaseParams.boardWidth+4.5,
+        bookcaseParams.height-25-boxDim/2,
+        -boxDim/2+bookcaseParams.boardWidth+10);
+      scene.add(bookGreen);
+
+      var bookGreen2 = makeBook({thickness: 1.5, height: 9, width: 8,
+        color: 0x46995b, accent: 0xb0aeaf});
+      bookGreen2.rotation.y = Math.PI/2;
+      bookGreen2.position.set(-boxDim/4+bookcaseParams.boardWidth+7.5,
+        bookcaseParams.height-24-boxDim/2,
+        -boxDim/2+bookcaseParams.boardWidth+10);
+      scene.add(bookGreen2);
+
+      //bottom shelf
+      var bookBlue2 = makeBook({thickness: 1.5, height: 12, width: 9,
+        color: 0x1988bf, accent: 0xb0aeaf});
+      bookBlue2.rotation.set(-Math.PI/2, 0, Math.PI/2);
+      bookBlue2.position.set(-boxDim/4+bookcaseParams.width
+        -bookcaseParams.boardWidth-2,-boxDim/2+bookcaseParams.boardWidth+.75,
+        -boxDim/2+bookcaseParams.boardWidth+9);
+      scene.add(bookBlue2);
+
+      var bookSilver = makeBook({thickness: 1.5, height: 9, width: 8,
+        color: 0xb3bab3, accent: 0xffb300});
+      bookSilver.rotation.set(-Math.PI/2, 0, Math.PI/2);
+      bookSilver.position.set(-boxDim/4+bookcaseParams.width
+        -bookcaseParams.boardWidth-3.5,-boxDim/2+bookcaseParams.boardWidth+2.25,
+        -boxDim/2+bookcaseParams.boardWidth+9);
+      scene.add(bookSilver);
+
+      var bookPurple = makeBook({thickness: 2, height: 10, width: 8,
+        color: 0x9081b3, accent: 0xbfdadb});
+      bookPurple.rotation.set(-Math.PI/2, -Math.PI/8, Math.PI/2);
+      bookPurple.position.set(
+        -boxDim/4+bookcaseParams.width-bookcaseParams.boardWidth-11,
+        -boxDim/2+bookcaseParams.boardWidth+2.75,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bookPurple);
+
+      //bear-----------------------------------------------------------------
+
+      bear.position.set(
+        -boxDim/4+bookcaseParams.width-bookcaseParams.boardWidth-14,
+        -boxDim/2+bookcaseParams.height-13,
+        -boxDim/2+bookcaseParams.boardWidth+8);
+      scene.add(bear);
+
+      //bear's spotlight!
+      //var bearSpotlight = new THREE.SpotLight(0xffffff, 1.5, 25,
+        //Math.atan(bearParams.body*2.5/20.0)); //heaight of 20 (arbitrary)
+      bearSpotlight.position.set(bear.position.x, bear.position.y + 20,
+        bear.position.z); //directly above bear
+      //var bearTarget = new THREE.Object3D();
+      bearTarget.position.set(bear.position.x, bear.position.y,
+        bear.position.z);
+      bearSpotlight.target = bearTarget;
+      scene.add(bearSpotlight); scene.add(bearSpotlight.target);
+      //----------------------------------------------------------------
+
+      //wall decorations------------------------------------------------
+      var poster1 = new THREE.Mesh(
+        new THREE.PlaneGeometry(boxDim/4, boxDim/2),
+        new THREE.MeshPhongMaterial({color:0xe3e3e3}));
+      poster1.rotation.y = Math.PI/2;
+      poster1.position.set(-boxDim+0.5, 0, -Math.PI/4);
+      scene.add(poster1);
+
+      var poster2 = new THREE.Mesh(
+        new THREE.PlaneGeometry(boxDim/4, boxDim/2),
+        new THREE.MeshPhongMaterial({color:0xe3e3e3}));
+      poster2.rotation.y = -Math.PI/2;
+      poster2.position.set(boxDim-0.5, 0, -Math.PI/4);
+      scene.add(poster2);
+
+      //==============================================================
+      var windowParams = {width: boxDim/3, height: boxDim/3*1.5,
+        color: 0xe6ffff, drapes: true, drapeColor: 0x6d9ea3, viewColor: 0x000926,
+        x: -boxDim/1.7, y: 0, z: -boxDim/2+.5}
+
+        var window = makeWindow(windowParams);
+        window.position.set(windowParams.x, windowParams.y, windowParams.z);
+        scene.add(window);
+        //=================================================================
+
+        var bedParams = {width:50, height: 16, depth: 60, woodColor: 0xffadda,
+          blanketColor: 0x3240a8, pillowColor: 0xa5b0c2};
+        var bed = makeBed(bedParams);
+        bed.position.set(boxDim, -boxDim/2, -boxDim/2);
+        scene.add(bed);
+        //=============================================================
+
+  }//end makeScene
+
+//INTERACTION-----------------------------------------------------------------
+  document.addEventListener('keypress', onKeyPress);
+
+  function onKeyPress (event) {
+    if ( event.keyCode == 13) {
+      console.log("YEET U PRESED ENTER");
+      changeLights();
+    }
+    else console.log("nah");
+}
+var lightNum = 0; var bearScale;
+
+//================================================
+var bearParams2 = {body: 3.5, color: 0xdb9465, pink: 0xf58ca9,
+  scarf: 0x418bf2, bell: 0x9bd4cd}
+
+var bear1 = makeBear(bearParams2); var bear2 = makeBear(bearParams2);
+var bear3 = makeBear(bearParams2);
+bear1.position.set(-boxDim*.75, -boxDim/2+bearParams2.body, boxDim/3);
+bear1.rotation.y = Math.PI/2;
+bear2.position.set(boxDim/1.5, -boxDim/2+bearParams2.body, boxDim/3);
+bear2.rotation.y = -Math.PI/4;
+bear3.position.set(-boxDim/2, -boxDim/2+bearParams2.body, -boxDim/6);
+bear3.rotation.y = Math.PI/4;
+
+var bearParams3 = {body: 7, color: 0xdb9465, pink: 0xf58ca9,
+  scarf: 0x418bf2, bell: 0x9bd4cd}
+var pieces = new Array();
+pieces[0] =  new Array(); pieces[1] = new Array(); pieces[2] = new Array();
+var coords = {x: bear1.position.x, y: bear1.position.y, z: bear1.position.z};
+
+for (var i=0; i<3; i++){
+  if (i==1){
+    coords.x = bear2.position.x; coords.y = bear2.position.y;
+    coords.z = bear2.position.z;
+  }
+  if (i==2){
+    coords.x = bear3.position.x; coords.y = bear3.position.y;
+    coords.z = bear3.position.z;
+  }
+  for (var j=0; j<6; j++){
+    pieces[i][j] = dismemberedBear(bearParams3, j+1);
+    pieces[i][j].position.set(coords.x, coords.y, coords.z);
+  }
+}
+
+//-------------------------------------------
+
+function changeLights(){
+  console.log("lightNum = " + lightNum);
+
+      ambientLight.intensity = ambientLight.intensity*3/4;
+      spotlightDown.intensity = spotlightDown.intensity*3/4;
+      spotlightUp.intensity = spotlightDown.intensity*3/4;
+      //for (var i=0; i<lampLights.length; i++)
+        //lampLights[i].intensity = lampLights[i].intensity*3/4;
+
+      if (lightNum == 0)
+      {
+        bear.position.x = bear.position.x + 10;
+        bear.position.y = bear.position.y - 15.5;
+        bearScale = 1.25;
+        updateBearLight(16);
+
+      }
+
+      else if (lightNum == 1)
+      {
+        bear.position.y = bear.position.y - 15;
+        bearScale = 1.75
+        updateBearLight(12);
+
+        scene.add(bear1); scene.add(bear2); scene.add(bear3);
+      }
+
+      else if (lightNum == 2)
+      {
+        bear.position.z = bear.position.z + bookcaseParams.depth;
+        bear.position.y = bear.position.y - 19 + bookcaseParams.boardWidth;
+        bearScale = 3;
+        updateBearLight(30);
+
+        bear1.scale.set(bearScale/2, bearScale/2, bearScale/2);
+        bear2.scale.set(bearScale/2, bearScale/2, bearScale/2);
+        bear3.scale.set(bearScale/2, bearScale/2, bearScale/2);
+      }
+
+      else if (lightNum == 3)
+      {
+        bear.position.y = bear.position.y + .25;
+        bear.position.z = bear.position.z + 20;
+        bearScale = 5;
+        updateBearLight(40);
+
+        scene.remove(bear1); scene.remove(bear2); scene.remove(bear3);
+        for (var i=0; i<3; i++){
+          for (var j=0; j<6; j++) scene.add(pieces[i][j]);
+        }//end for i
+
+      }
+
+      else if (lightNum == 4)
+      {
+        bear.position.y = bear.position.y + 10;
+        bear.position.z = bear.position.z + 30;
+        bearScale = 7;
+        updateBearLight(40);
+      }
+
+      else if (lightNum == 5)
+      {
+        bear.position.y = bear.position.y -10;
+        bearScale = 10;
+        updateBearLight(70);
+      }
+
+      else if (lightNum == 6)
+      {
+        ambientLight.intensity = 0;
+        spotlightDown.intensity = 0;
+        spotlightUp.intensity = 0;
+        //for (var i=0; i<lampLights.length; i++)
+          //lampLights[i].intensity = 0;
+      }
+
+    function updateBearLight(height){
+      bearSpotlight.position.set(bear.position.x, bear.position.y + height,
+        bear.position.z);
+      bearSpotlight.angle = Math.atan(bearParams.body*2.5*bearScale/height);
+
+      if (lightNum < 4)
+        bearSpotlight.intensity = bearSpotlight.intensity*7/6;
+
+      if (lightNum > 1)
+        bearSpotlight.distance = bearSpotlight.distance + height/2;
+
+
+      bearTarget.position.set(bear.position.x, bear.position.y,
+        bear.position.z);
+    }
+
+    bear.scale.set(bearScale, bearScale, bearScale);
+
+    lightNum++;
+    TW.render();
+}
+
+//---------------------------------------------------------------------------
+
+//textures-------------------------------------------------------------------
+makeScene();
+
+// ================================================================
+
+var renderer = new THREE.WebGLRenderer();
+TW.mainInit(renderer,scene);
+
+TW.cameraSetup(renderer,
+               scene,
+               {minx: 0, maxx: boxDim/2,
+                miny: -boxDim/5, maxy: boxDim/5,
+                minz: -boxDim/2, maxz: boxDim/2});
+
+</script>
+
+</body>
+</html>
