@@ -1,6 +1,5 @@
-//PENULTIMATE JS FILE THANK GOODNESS
 //bed is long on x axis, with pillow farther back,
-// and center is lower right corner of pillow side
+//and center is lower right corner of pillow side
 
 function makeBed(params){
 
@@ -59,8 +58,7 @@ function makeBed(params){
   bed.add(base);
 
   //blankets-----------------------------------------------------------
-  //I tried everything to make the curved blankets Bezier curves to look
-  //right to no success :(
+  //Removed bc Bezier curves would not cooperate :(
   /*
   var topToBottom = [
       [ [0,3,-2],  [2,3,-2],  [4,3,-2],  [6, 3, -2] ],
